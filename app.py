@@ -90,7 +90,7 @@ def upload_file():
         with app.open_resource(filepath) as fp:
             msg.attach(filename, "application/octet-stream", fp.read())
         mail.send(msg)
-        return "Submission successful! Thank you."
+        return render_template('confirmation.html')  # Updated to render confirmation.html
 
     except Exception as e:
         return f"Failed to send email: {e}"
@@ -98,6 +98,7 @@ def upload_file():
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
