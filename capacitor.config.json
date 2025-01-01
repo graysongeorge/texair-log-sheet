@@ -1,0 +1,9 @@
+{
+  "appId": "com.texair.logsheet",
+  "appName": "Tex-Air Activity Logs",
+  "webDir": "www",
+  "server": {
+    "url": "https://texair-log-sheet.onrender.com"
+  },
+  "bundledWebRuntime": false
+}
