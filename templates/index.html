@@ -3,55 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit Log Sheet</title>
+    <title>Tex-Air Log Submission</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
             margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-
-        header {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-        }
-
-        main {
             padding: 20px;
         }
 
         form {
-            max-width: 500px;
-            margin: 0 auto;
+            max-width: 400px;
+            margin: 20px auto;
             background: white;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: bold;
         }
 
-        input[type="text"], input[type="file"], button {
+        input {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
         }
 
         button {
-            background-color: #007bff;
+            background-color: #007BFF;
             color: white;
             border: none;
+            padding: 10px;
+            border-radius: 5px;
             cursor: pointer;
+            width: 100%;
         }
 
         button:hover {
@@ -59,41 +50,33 @@
         }
 
         .logout {
-            margin-top: 20px;
             text-align: center;
+            margin-top: 20px;
         }
 
         .logout a {
-            color: #007bff;
             text-decoration: none;
-        }
-
-        .logout a:hover {
-            text-decoration: underline;
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Tex-Air Delivery Log Submission</h1>
-    </header>
-    <main>
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            <label for="first_name">First Name:</label>
-            <input type="text" id="first_name" name="first_name" placeholder="Enter your first name" required>
+    <h1 style="text-align:center;">Tex-Air Log Submission</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="first_name">First Name:</label>
+        <input type="text" id="first_name" name="first_name" required>
 
-            <label for="last_name">Last Name:</label>
-            <input type="text" id="last_name" name="last_name" placeholder="Enter your last name" required>
+        <label for="last_name">Last Name:</label>
+        <input type="text" id="last_name" name="last_name" required>
 
-            <label for="file">Upload File:</label>
-            <input type="file" id="file" name="file" required>
+        <label for="file">Upload Log:</label>
+        <input type="file" id="file" name="file" accept="image/*,application/pdf" capture="environment" required>
 
-            <button type="submit">Submit</button>
-        </form>
-
-        <div class="logout">
-            <a href="/logout">Logout</a>
-        </div>
-    </main>
+        <button type="submit">Submit</button>
+    </form>
+    <div class="logout">
+        <a href="/logout">Logout</a>
+    </div>
 </body>
 </html>
