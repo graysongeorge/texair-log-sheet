@@ -1,11 +1,14 @@
 import os
 import logging
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from flask_mail import Mail, Message
 from datetime import datetime
 
 app = Flask(__name__)
+
+# Use the environment variable for the secret key
+app.secret_key = os.getenv('SECRET_KEY', 'default_key_if_not_set')  # Replace 'default_key_if_not_set' with a safe fallback key
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -27,19 +30,47 @@ app.config['MAIL_USERNAME'] = 'texairlogs@gmail.com'
 app.config['MAIL_PASSWORD'] = 'nepz ocpl zjcs soij'
 mail = Mail(app)
 
+# Allowed credentials
+ALLOWED_USERNAME = "driver"
+ALLOWED_PASSWORD = "driver"
+
+# Helper function to check file type
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
-def intro():
-    return render_template('intro.html')
+def login():
+    if 'logged_in' in session and session['logged_in']:
+        return redirect(url_for('submit'))
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def authenticate():
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if username == ALLOWED_USERNAME and password == ALLOWED_PASSWORD:
+        session['logged_in'] = True
+        return redirect(url_for('submit'))
+    else:
+        return render_template('login.html', error="Invalid username or password.")
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
 
 @app.route('/submit')
 def submit():
+    if 'logged_in' not in session or not session['logged_in']:
+        return redirect(url_for('login'))
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    if 'logged_in' not in session or not session['logged_in']:
+        return redirect(url_for('login'))
+
     if 'file' not in request.files:
         return render_template('error.html', message="No file part provided."), 400
 
@@ -60,7 +91,7 @@ def upload_file():
         try:
             # Generate current date for the email subject
             current_date = datetime.now().strftime("%m-%d-%Y")
-            subject = f"Daily Activity Sheet - {first_name} {last_name} - {current_date}"
+            subject = f"Daily Activity Sheet - {current_date} - {first_name} {last_name}"
 
             # Send email
             msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[email])
