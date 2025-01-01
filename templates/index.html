@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Submit Log Sheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+            background-color: #f5f5f5; /* Light grey background */
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Submit Your Daily Log Sheet</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="first_name">First Name:</label><br>
+        <input type="text" id="first_name" name="first_name" required><br>
+        <label for="last_name">Last Name:</label><br>
+        <input type="text" id="last_name" name="last_name" required><br>
+        <label for="file">Upload Log Sheet:</label><br>
+        <input type="file" id="file" name="file" accept="image/*,application/pdf" required><br>
+        <button type="submit">Send</button>
+    </form>
+</body>
+</html>
