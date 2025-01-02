@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Tex-Air Activity Logs</string>
+    <string name="app_name">Tex-Air Log Submission</string>
     <string name="title_activity_main">Tex-Air Activity Logs</string>
     <string name="package_name">com.texair.logsheet</string>
     <string name="custom_url_scheme">com.texair.logsheet</string>
