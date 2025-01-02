@@ -23,9 +23,9 @@ mail = Mail(app)
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Allowed credentials
-ALLOWED_USERNAME = "driver"
-ALLOWED_PASSWORD = "driver"
+# Allowed credentials (now retrieved from environment variables)
+ALLOWED_USERNAME = os.getenv('LOGIN_USERNAME', 'default_username')
+ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'default_password')
 
 # Helper function to check file type
 def allowed_file(filename):
@@ -98,7 +98,6 @@ def upload_file():
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
