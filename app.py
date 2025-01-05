@@ -27,6 +27,9 @@ if not os.path.exists(UPLOAD_FOLDER):
 ALLOWED_USERNAME = os.getenv('LOGIN_USERNAME', 'default_username')
 ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'default_password')
 
+# Recipient email address retrieved from environment variable
+RECIPIENT_EMAIL = os.getenv('RECIPIENT_EMAIL', 'billing@texairdelivery.com')
+
 # Helper function to check file type
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -85,7 +88,7 @@ def upload_file():
     try:
         msg = Message(subject,
                       sender=app.config['MAIL_USERNAME'],
-                      recipients=['notifications@texairdelivery.com'])
+                      recipients=[RECIPIENT_EMAIL])
         msg.body = f"Log submitted by {first_name} {last_name}."
         with app.open_resource(filepath) as fp:
             msg.attach(filename, "application/octet-stream", fp.read())
