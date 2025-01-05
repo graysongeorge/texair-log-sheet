@@ -30,6 +30,9 @@ ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'default_password')
 # Recipient email address retrieved from environment variable
 RECIPIENT_EMAIL = os.getenv('RECIPIENT_EMAIL', 'billing@texairdelivery.com')
 
+# Privacy Policy URL
+PRIVACY_POLICY_URL = "https://graysongeorge.github.io/texair-log-sheet/"
+
 # Helper function to check file type
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -42,6 +45,19 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/privacy-policy')
+def privacy_policy():
+    """Route to display the privacy policy link"""
+    return f"""
+    <html>
+        <head><title>Privacy Policy</title></head>
+        <body>
+            <h1>Privacy Policy</h1>
+            <p>You can view our Privacy Policy <a href="{PRIVACY_POLICY_URL}" target="_blank">here</a>.</p>
+        </body>
+    </html>
+    """
 
 @app.route('/')
 def login():
