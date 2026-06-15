@@ -28,7 +28,10 @@ ALLOWED_USERNAME = os.getenv('LOGIN_USERNAME', 'default_username')
 ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'default_password')
 
 # Recipient email address retrieved from environment variable
-RECIPIENT_EMAIL = os.getenv('RECIPIENT_EMAIL', 'billing@texairdelivery.com')
+RECIPIENT_EMAILS = os.getenv(
+    'RECIPIENT_EMAIL',
+    'billing@texairdelivery.com,cashreceipts@texairdelivery.com'
+).split(',')
 
 # Privacy Policy URL
 PRIVACY_POLICY_URL = "https://graysongeorge.github.io/texair-log-sheet/"
@@ -104,7 +107,7 @@ def upload_file():
     try:
         msg = Message(subject,
                       sender=app.config['MAIL_USERNAME'],
-                      recipients=[RECIPIENT_EMAIL])
+                      recipients=RECIPIENT_EMAILS)
         msg.body = f"Log submitted by {first_name} {last_name}."
         with app.open_resource(filepath) as fp:
             msg.attach(filename, "application/octet-stream", fp.read())
