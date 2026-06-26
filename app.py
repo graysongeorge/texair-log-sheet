@@ -17,6 +17,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_TIMEOUT'] = 20
 app.secret_key = os.getenv('SECRET_KEY', 'default_key_if_not_set')
 mail = Mail(app)
 
@@ -92,7 +93,7 @@ def index():
 def upload_file():
     first_name = request.form.get('first_name')
     last_name = request.form.get('last_name')
-    file = request.files['file']
+    file = request.files.get['file']
 
     if not first_name or not last_name or not file or not allowed_file(file.filename):
         return "Invalid submission. Please fill out all fields and upload a valid file."
@@ -111,7 +112,7 @@ def upload_file():
         msg.body = f"Log submitted by {first_name} {last_name}."
         with app.open_resource(filepath) as fp:
             msg.attach(filename, "application/octet-stream", fp.read())
-        mail.send(msg)
+        # mail.send(msg)
         return render_template('confirmation.html')  # Updated to render confirmation.html
 
     except Exception as e:
