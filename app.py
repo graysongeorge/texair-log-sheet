@@ -83,9 +83,8 @@ def privacy_policy():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
-    first_name = request.form.get('first_name', '').strip()
-    last_name = request.form.get('last_name', '').strip()
-    file = request.files.get('file')
+    app.logger.info("UPLOAD ROUTE HIT")
+    return "UPLOAD ROUTE WORKS"
 
     if not first_name or not last_name:
         return "First and last name are required.", 400
