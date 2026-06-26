@@ -83,21 +83,39 @@ def privacy_policy():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
-    app.logger.info("UPLOAD ROUTE HIT")
-    return "UPLOAD ROUTE WORKS"
+    app.logger.info("STEP 1")
+
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    file = request.files.get('file')
+
+    app.logger.info("STEP 2")
 
     if not first_name or not last_name:
-        return "First and last name are required.", 400
+        return "Missing name"
 
-    if not file or not allowed_file(file.filename):
-        return "Invalid file. Please upload a JPG, JPEG, PNG, or PDF.", 400
+    if not file:
+        return "Missing file"
+
+    if not allowed_file(file.filename):
+        return "Bad file type"
+
+    app.logger.info("STEP 3")
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
     file.save(filepath)
 
-    current_date = datetime.now().strftime("%m-%d-%Y")
-    subject = f"Daily Activity Sheet - {first_name} {last_name} - {current_date}"
+    app.logger.info("STEP 4")
+
+    if os.path.exists(filepath):
+        app.logger.info("FILE SAVED SUCCESSFULLY")
+        os.remove(filepath)
+
+    app.logger.info("STEP 5")
+
+    return render_template("confirmation.html")
 
     try:
         msg = Message(
