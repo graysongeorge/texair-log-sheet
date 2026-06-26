@@ -1,35 +1,25 @@
 import os
-import tempfile
+import base64
 from datetime import datetime
 from functools import wraps
 
 from flask import Flask, request, render_template, redirect, url_for, session
-from flask_mail import Mail, Message
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from werkzeug.utils import secure_filename
 
-
 app = Flask(__name__)
-
-# -----------------------------
-# App configuration
-# -----------------------------
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "pdf"}
 
 app.secret_key = os.getenv("SECRET_KEY", "default_key_if_not_set")
-
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
-app.config["MAIL_TIMEOUT"] = 20
-
-mail = Mail(app)
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 LOGIN_USERNAME = os.getenv("LOGIN_USERNAME", "driver")
 LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "driver")
+
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "texairlogs@gmail.com")
 
 RECIPIENT_EMAILS = os.getenv(
     "RECIPIENT_EMAIL",
@@ -38,10 +28,6 @@ RECIPIENT_EMAILS = os.getenv(
 
 PRIVACY_POLICY_URL = "https://graysongeorge.github.io/texair-log-sheet/"
 
-
-# -----------------------------
-# Helpers
-# -----------------------------
 
 def allowed_file(filename):
     return (
@@ -59,10 +45,6 @@ def login_required(route_function):
         return route_function(*args, **kwargs)
     return wrapper
 
-
-# -----------------------------
-# Routes
-# -----------------------------
 
 @app.route("/")
 def login():
@@ -103,8 +85,6 @@ def privacy_policy():
 @app.route("/upload", methods=["POST"])
 @login_required
 def upload_file():
-    app.logger.info("UPLOAD START")
-
     first_name = request.form.get("first_name", "").strip()
     last_name = request.form.get("last_name", "").strip()
     uploaded_file = request.files.get("file")
@@ -118,54 +98,46 @@ def upload_file():
     if not allowed_file(uploaded_file.filename):
         return "Bad file type. Please upload JPG, JPEG, PNG, or PDF.", 400
 
-    original_filename = secure_filename(uploaded_file.filename)
+    if not SENDGRID_API_KEY:
+        return "SendGrid API key is missing.", 500
 
-    temp_path = None
+    filename = secure_filename(uploaded_file.filename)
+    file_bytes = uploaded_file.read()
+    encoded_file = base64.b64encode(file_bytes).decode()
+
+    current_date = datetime.now().strftime("%m-%d-%Y")
+    subject = f"Daily Activity Sheet - {first_name} {last_name} - {current_date}"
 
     try:
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            uploaded_file.save(temp_file.name)
-            temp_path = temp_file.name
-
-        app.logger.info("FILE SAVED TEMPORARILY")
-
-        current_date = datetime.now().strftime("%m-%d-%Y")
-        subject = f"Daily Activity Sheet - {first_name} {last_name} - {current_date}"
-
-        msg = Message(
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=[email.strip() for email in RECIPIENT_EMAILS if email.strip()],
             subject=subject,
-            sender=app.config["MAIL_USERNAME"],
-            recipients=[email.strip() for email in RECIPIENT_EMAILS if email.strip()]
-        )
-
-        msg.body = (
-            f"Daily activity sheet submitted by {first_name} {last_name}.\n\n"
-            f"Submission Date: {current_date}"
-        )
-
-        app.logger.info("ATTACHING FILE")
-
-        with open(temp_path, "rb") as file_data:
-            msg.attach(
-                original_filename,
-                "application/octet-stream",
-                file_data.read()
+            plain_text_content=(
+                f"Daily activity sheet submitted by {first_name} {last_name}.\n\n"
+                f"Submission Date: {current_date}"
             )
+        )
 
-        app.logger.info("SENDING EMAIL")
-        mail.send(msg)
-        app.logger.info("EMAIL SENT")
+        attachment = Attachment(
+            FileContent(encoded_file),
+            FileName(filename),
+            FileType("application/octet-stream"),
+            Disposition("attachment")
+        )
+
+        message.attachment = attachment
+
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+
+        app.logger.info(f"SendGrid status code: {response.status_code}")
 
         return render_template("confirmation.html")
 
     except Exception as e:
-        app.logger.error(f"UPLOAD FAILED: {e}")
+        app.logger.error(f"SendGrid failed: {e}")
         return f"Failed to send submission: {e}", 500
-
-    finally:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
-            app.logger.info("TEMP FILE DELETED")
 
 
 if __name__ == "__main__":
