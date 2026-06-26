@@ -7,11 +7,11 @@ from functools import wraps
 
 app = Flask(__name__)
 
-# Configuration
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB limit
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -19,53 +19,39 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_TIMEOUT'] = 20
 app.secret_key = os.getenv('SECRET_KEY', 'default_key_if_not_set')
+
 mail = Mail(app)
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Allowed credentials (now retrieved from environment variables)
-ALLOWED_USERNAME = os.getenv('LOGIN_USERNAME', 'default_username')
-ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'default_password')
+ALLOWED_USERNAME = os.getenv('LOGIN_USERNAME', 'driver')
+ALLOWED_PASSWORD = os.getenv('LOGIN_PASSWORD', 'driver')
 
-# Recipient email address retrieved from environment variable
 RECIPIENT_EMAILS = os.getenv(
     'RECIPIENT_EMAIL',
-    'billing@texairdelivery.com,cashreceipts@texairdelivery.com'
+    'notifications@texairdelivery.com'
 ).split(',')
 
-# Privacy Policy URL
 PRIVACY_POLICY_URL = "https://graysongeorge.github.io/texair-log-sheet/"
 
-# Helper function to check file type
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return (
+        filename
+        and '.' in filename
+        and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
 
-# Login required decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'logged_in' not in session:
+        if not session.get('logged_in'):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
-@app.route('/privacy-policy')
-def privacy_policy():
-    """Route to display the privacy policy link"""
-    return f"""
-    <html>
-        <head><title>Privacy Policy</title></head>
-        <body>
-            <h1>Privacy Policy</h1>
-            <p>You can view our Privacy Policy <a href="{PRIVACY_POLICY_URL}" target="_blank">here</a>.</p>
-        </body>
-    </html>
-    """
-
 @app.route('/')
 def login():
-    if 'logged_in' in session:
+    if session.get('logged_in'):
         return redirect(url_for('index'))
     return render_template('login.html')
 
@@ -73,14 +59,16 @@ def login():
 def authenticate():
     username = request.form.get('username')
     password = request.form.get('password')
+
     if username == ALLOWED_USERNAME and password == ALLOWED_PASSWORD:
         session['logged_in'] = True
         return redirect(url_for('index'))
+
     return render_template('login.html', error="Invalid username or password.")
 
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/index')
@@ -88,39 +76,52 @@ def logout():
 def index():
     return render_template('index.html')
 
+@app.route('/privacy-policy')
+def privacy_policy():
+    return redirect(PRIVACY_POLICY_URL)
+
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
-    first_name = request.form.get('first_name')
-    last_name = request.form.get('last_name')
-    file = request.files.get['file']
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    file = request.files.get('file')
 
-    if not first_name or not last_name or not file or not allowed_file(file.filename):
-        return "Invalid submission. Please fill out all fields and upload a valid file."
+    if not first_name or not last_name:
+        return "First and last name are required.", 400
+
+    if not file or not allowed_file(file.filename):
+        return "Invalid file. Please upload a JPG, JPEG, PNG, or PDF.", 400
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
-    # Send email with attachment
     current_date = datetime.now().strftime("%m-%d-%Y")
-    subject = f"Log Submission from {first_name} {last_name} - {current_date}"
+    subject = f"Daily Activity Sheet - {first_name} {last_name} - {current_date}"
+
     try:
-        msg = Message(subject,
-                      sender=app.config['MAIL_USERNAME'],
-                      recipients=RECIPIENT_EMAILS)
+        msg = Message(
+            subject,
+            sender=app.config['MAIL_USERNAME'],
+            recipients=RECIPIENT_EMAILS
+        )
         msg.body = f"Log submitted by {first_name} {last_name}."
-        with app.open_resource(filepath) as fp:
+
+        with open(filepath, "rb") as fp:
             msg.attach(filename, "application/octet-stream", fp.read())
-        # mail.send(msg)
-        return render_template('confirmation.html')  # Updated to render confirmation.html
+
+        mail.send(msg)
+
+        return render_template('confirmation.html')
 
     except Exception as e:
-        return f"Failed to send email: {e}"
+        app.logger.error(f"Upload/email failed: {e}")
+        return f"Failed to send email: {e}", 500
 
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
